@@ -1,16 +1,17 @@
 package br.com.alura.forum.service
 
-import br.com.alura.forum.dto.NewTopicoDto
-import br.com.alura.forum.model.Curso
+import br.com.alura.forum.dto.NewTopicoForm
+import br.com.alura.forum.dto.TopicoView
+import br.com.alura.forum.mapper.TopicoFormMapper
+import br.com.alura.forum.mapper.TopicoviewMapper
 import br.com.alura.forum.model.Topico
-import br.com.alura.forum.model.Usuario
 import org.springframework.stereotype.Service
 
 @Service
 class TopicoService(
     private var topicos: List<Topico> = listOf(),
-    private val cursoService: CursoService,
-    private val autorService: AutorService
+    private val topicoViewMapper: TopicoviewMapper,
+    private val topicoFormMapper: TopicoFormMapper,
 
 ) {
 
@@ -51,24 +52,23 @@ class TopicoService(
 //        this.topicos = listOf(topico, topico2)
     }
 
-    fun criarTopicos(): List<Topico> {
-        return this.topicos
-    }
-
-    fun showTopico(id: Long): Topico? {
-        return this.topicos.find { topico ->
-            topico.id == id
+    fun criarTopicos(): List<TopicoView> {
+        return this.topicos.map { topico ->
+            this.topicoViewMapper.map(topico)
         }
     }
 
-    fun createTopico(topicoDto: NewTopicoDto): Topico {
-        val topico =  Topico(
-            id = topicos.size.toLong() + 1,
-            titulo = topicoDto.titulo,
-            mensagem = topicoDto.mensagem,
-            curso = cursoService.searchById(topicoDto.idCurso),
-            autor = autorService.searchById(topicoDto.idAutor)
-        )
+    fun showTopico(id: Long): TopicoView? {
+        val topico =  this.topicos.find { topico ->
+            topico.id == id
+        }!!
+
+        return this.topicoViewMapper.map(topico)
+    }
+
+    fun createTopico(topicoDto: NewTopicoForm): Topico {
+        val topico = this.topicoFormMapper.map(topicoDto)
+        topico.id = this.topicos.size.toLong() + 1
         this.topicos = this.topicos.plus(topico)
         return topico
     }
