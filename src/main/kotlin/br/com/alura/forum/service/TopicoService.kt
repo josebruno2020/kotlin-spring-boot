@@ -2,6 +2,8 @@ package br.com.alura.forum.service
 
 import br.com.alura.forum.dto.NewTopicoForm
 import br.com.alura.forum.dto.TopicoView
+import br.com.alura.forum.dto.UpdateTopicoForm
+import br.com.alura.forum.exception.NotFoundException
 import br.com.alura.forum.mapper.TopicoFormMapper
 import br.com.alura.forum.mapper.TopicoviewMapper
 import br.com.alura.forum.model.Topico
@@ -9,11 +11,12 @@ import org.springframework.stereotype.Service
 
 @Service
 class TopicoService(
-    private var topicos: List<Topico> = listOf(),
+    private var topicos: MutableList<Topico> = mutableListOf(),
     private val topicoViewMapper: TopicoviewMapper,
     private val topicoFormMapper: TopicoFormMapper,
+    private val notFoundException: String = "Topico não encontrado"
 
-) {
+    ) {
 
     init {
         println("service de topico")
@@ -61,16 +64,53 @@ class TopicoService(
     fun showTopico(id: Long): TopicoView? {
         val topico =  this.topicos.find { topico ->
             topico.id == id
-        }!!
+        }
 
-        return this.topicoViewMapper.map(topico)
+        topico?.let {
+            return this.topicoViewMapper.map(it)
+        }?:run {
+           throw NotFoundException(notFoundException)
+        }
     }
 
-    fun createTopico(topicoDto: NewTopicoForm): Topico {
-        val topico = this.topicoFormMapper.map(topicoDto)
+    fun createTopico(form: NewTopicoForm): Topico {
+        val topico = this.topicoFormMapper.map(form)
         topico.id = this.topicos.size.toLong() + 1
-        this.topicos = this.topicos.plus(topico)
+        this.topicos.add(topico)
         return topico
+    }
+
+    fun updateTopico(form: UpdateTopicoForm): TopicoView {
+        val topico = this.topicos.find { it.id == form.idTitulo }
+
+        topico?.let {
+            topicos.remove(topico)
+            val novoTopico = Topico(
+                id = form.idTitulo,
+                titulo = form.titulo,
+                mensagem = form.mensagem,
+                curso = it.curso,
+                autor = it.autor,
+                dataCriacao = it.dataCriacao
+            )
+            topicos.add(novoTopico)
+            return this.topicoViewMapper.map(novoTopico)
+        } ?: run {
+            throw NotFoundException(notFoundException)
+        }
+
+
+
+    }
+
+    fun deleteTopico(idTopico: Long): Boolean {
+        val topico = this.topicos.find { it.id == idTopico }
+
+        return topico?.let {
+            this.topicos.remove(it)
+        } ?: run {
+            throw NotFoundException(message = notFoundException)
+        }
     }
 
 }
